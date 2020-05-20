@@ -634,40 +634,106 @@ associated with some application cache.
             name: string;
             path: string;
             domain: string;
+        }
+        /**
+         * Information about a request that is affected by an inspector issue.
+         */
+        export interface AffectedRequest {
             /**
-             * Optionally identifies the site-for-cookies, which may be used by the
-front-end as additional context.
+             * The unique request id.
              */
-            siteForCookies?: string;
+            requestId: Network.RequestId;
+            url?: string;
+        }
+        /**
+         * Information about the frame affected by an inspector issue.
+         */
+        export interface AffectedFrame {
+            frameId: Page.FrameId;
         }
         export type SameSiteCookieExclusionReason = "ExcludeSameSiteUnspecifiedTreatedAsLax"|"ExcludeSameSiteNoneInsecure";
-        export type SameSiteCookieWarningReason = "WarnSameSiteUnspecifiedCrossSiteContext"|"WarnSameSiteNoneInsecure"|"WarnSameSiteUnspecifiedLaxAllowUnsafe"|"WarnSameSiteCrossSchemeSecureUrlMethodUnsafe"|"WarnSameSiteCrossSchemeSecureUrlLax"|"WarnSameSiteCrossSchemeSecureUrlStrict"|"WarnSameSiteCrossSchemeInsecureUrlMethodUnsafe"|"WarnSameSiteCrossSchemeInsecureUrlLax"|"WarnSameSiteCrossSchemeInsecureUrlStrict";
+        export type SameSiteCookieWarningReason = "WarnSameSiteUnspecifiedCrossSiteContext"|"WarnSameSiteNoneInsecure"|"WarnSameSiteUnspecifiedLaxAllowUnsafe"|"WarnSameSiteStrictLaxDowngradeStrict"|"WarnSameSiteStrictCrossDowngradeStrict"|"WarnSameSiteStrictCrossDowngradeLax"|"WarnSameSiteLaxCrossDowngradeStrict"|"WarnSameSiteLaxCrossDowngradeLax";
+        export type SameSiteCookieOperation = "SetCookie"|"ReadCookie";
         /**
          * This information is currently necessary, as the front-end has a difficult
 time finding a specific cookie. With this, we can convey specific error
 information without the cookie.
          */
         export interface SameSiteCookieIssueDetails {
+            cookie: AffectedCookie;
             cookieWarningReasons: SameSiteCookieWarningReason[];
             cookieExclusionReasons: SameSiteCookieExclusionReason[];
+            /**
+             * Optionally identifies the site-for-cookies and the cookie url, which
+may be used by the front-end as additional context.
+             */
+            operation: SameSiteCookieOperation;
+            siteForCookies?: string;
+            cookieUrl?: string;
+            request?: AffectedRequest;
         }
-        export interface AffectedResources {
-            cookies?: AffectedCookie[];
+        export type MixedContentResolutionStatus = "MixedContentBlocked"|"MixedContentAutomaticallyUpgraded"|"MixedContentWarning";
+        export type MixedContentResourceType = "Audio"|"Beacon"|"CSPReport"|"Download"|"EventSource"|"Favicon"|"Font"|"Form"|"Frame"|"Image"|"Import"|"Manifest"|"Ping"|"PluginData"|"PluginResource"|"Prefetch"|"Resource"|"Script"|"ServiceWorker"|"SharedWorker"|"Stylesheet"|"Track"|"Video"|"Worker"|"XMLHttpRequest"|"XSLT";
+        export interface MixedContentIssueDetails {
+            /**
+             * The type of resource causing the mixed content issue (css, js, iframe,
+form,...). Marked as optional because it is mapped to from
+blink::mojom::RequestContextType, which will be replaced
+by network::mojom::RequestDestination
+             */
+            resourceType?: MixedContentResourceType;
+            /**
+             * The way the mixed content issue is being resolved.
+             */
+            resolutionStatus: MixedContentResolutionStatus;
+            /**
+             * The unsafe http url causing the mixed content issue.
+             */
+            insecureURL: string;
+            /**
+             * The url responsible for the call to an unsafe url.
+             */
+            mainResourceURL: string;
+            /**
+             * The mixed content request.
+Does not always exist (e.g. for unsafe form submission urls).
+             */
+            request?: AffectedRequest;
+            /**
+             * Optional because not every mixed content issue is necessarily linked to a frame.
+             */
+            frame?: AffectedFrame;
+        }
+        /**
+         * Enum indicating the reason a response has been blocked. These reasons are
+refinements of the net error BLOCKED_BY_RESPONSE.
+         */
+        export type BlockedByResponseReason = "CoepFrameResourceNeedsCoepHeader"|"CoopSandboxedIFrameCannotNavigateToCoopPage"|"CorpNotSameOrigin"|"CorpNotSameOriginAfterDefaultedToSameOriginByCoep"|"CorpNotSameSite";
+        /**
+         * Details for a request that has been blocked with the BLOCKED_BY_RESPONSE
+code. Currently only used for COEP/COOP, but may be extended to include
+some CSP errors in the future.
+         */
+        export interface BlockedByResponseIssueDetails {
+            request: AffectedRequest;
+            frame?: AffectedFrame;
+            reason: BlockedByResponseReason;
         }
         /**
          * A unique identifier for the type of issue. Each type may use one of the
 optional fields in InspectorIssueDetails to convey more specific
-information about the kind of issue, and AffectedResources to identify
-resources that are affected by this issue.
+information about the kind of issue.
          */
-        export type InspectorIssueCode = "SameSiteCookieIssue";
+        export type InspectorIssueCode = "SameSiteCookieIssue"|"MixedContentIssue"|"BlockedByResponseIssue";
         /**
          * This struct holds a list of optional fields with additional information
-pertaining to the kind of issue. This is useful if there is a number of
-very similar issues that only differ in details.
+specific to the kind of issue. When adding a new issue code, please also
+add a new optional field to this type.
          */
         export interface InspectorIssueDetails {
             sameSiteCookieIssueDetails?: SameSiteCookieIssueDetails;
+            mixedContentIssueDetails?: MixedContentIssueDetails;
+            blockedByResponseIssueDetails?: BlockedByResponseIssueDetails;
         }
         /**
          * An inspector issue reported from the back-end.
@@ -675,7 +741,6 @@ very similar issues that only differ in details.
         export interface InspectorIssue {
             code: InspectorIssueCode;
             details: InspectorIssueDetails;
-            resources: AffectedResources;
         }
         
         export type issueAddedPayload = {
@@ -943,10 +1008,6 @@ Note that userVisibleOnly = true is the only currently supported type.
          */
         export type setPermissionParameters = {
             /**
-             * Origin the permission applies to, all origins if not specified.
-             */
-            origin?: string;
-            /**
              * Descriptor of permission to override.
              */
             permission: PermissionDescriptor;
@@ -954,6 +1015,10 @@ Note that userVisibleOnly = true is the only currently supported type.
              * Setting of the permission.
              */
             setting: PermissionSetting;
+            /**
+             * Origin the permission applies to, all origins if not specified.
+             */
+            origin?: string;
             /**
              * Context to override. When omitted, default browser context is used.
              */
@@ -965,11 +1030,11 @@ Note that userVisibleOnly = true is the only currently supported type.
          * Grant specific permissions to the given origin and reject all others.
          */
         export type grantPermissionsParameters = {
+            permissions: PermissionType[];
             /**
              * Origin the permission applies to, all origins if not specified.
              */
             origin?: string;
-            permissions: PermissionType[];
             /**
              * BrowserContext to override permissions. When omitted, default browser context is used.
              */
@@ -4392,6 +4457,25 @@ pauseIfNetworkFetchesPending: The virtual time base may not advance if there are
 resource fetches.
          */
         export type VirtualTimePolicy = "advance"|"pause"|"pauseIfNetworkFetchesPending";
+        /**
+         * Used to specify User Agent Cient Hints to emulate. See https://wicg.github.io/ua-client-hints
+         */
+        export interface UserAgentBrandVersion {
+            brand: string;
+            version: string;
+        }
+        /**
+         * Used to specify User Agent Cient Hints to emulate. See https://wicg.github.io/ua-client-hints
+         */
+        export interface UserAgentMetadata {
+            brands: UserAgentBrandVersion[];
+            fullVersion: string;
+            platform: string;
+            platformVersion: string;
+            architecture: string;
+            model: string;
+            mobile: boolean;
+        }
         
         /**
          * Notification sent after the virtual time budget for the current VirtualTimePolicy has run out.
@@ -4735,6 +4819,10 @@ on Android.
              * The platform navigator.platform should return.
              */
             platform?: string;
+            /**
+             * To be sent in Sec-CH-UA-* headers and returned in navigator.userAgentData
+             */
+            userAgentMetadata?: UserAgentMetadata;
         }
         export type setUserAgentOverrideReturnValue = {
         }
@@ -6273,6 +6361,14 @@ milliseconds relatively to this requestTime.
              */
             workerReady: number;
             /**
+             * Started fetch event.
+             */
+            workerFetchStart: number;
+            /**
+             * Settled fetch event respondWith promise.
+             */
+            workerRespondWithSettled: number;
+            /**
              * Started sending request.
              */
             sendStart: number;
@@ -7346,10 +7442,10 @@ or requestWillBeSentExtraInfo will be fired first for the same request.
              */
             requestId: RequestId;
             /**
-             * A list of cookies which will not be sent with this request along with corresponding reasons
-for blocking.
+             * A list of cookies potentially associated to the requested URL. This includes both cookies sent with
+the request and the ones not sent; the latter are distinguished by having blockedReason field set.
              */
-            blockedCookies: BlockedCookieWithReason[];
+            associatedCookies: BlockedCookieWithReason[];
             /**
              * Raw request headers as they will be sent over the wire.
              */
@@ -7848,6 +7944,10 @@ continueInterceptedRequest call.
              * The platform navigator.platform should return.
              */
             platform?: string;
+            /**
+             * To be sent in Sec-CH-UA-* headers and returned in navigator.userAgentData
+             */
+            userAgentMetadata?: Emulation.UserAgentMetadata;
         }
         export type setUserAgentOverrideReturnValue = {
         }
@@ -7857,6 +7957,47 @@ continueInterceptedRequest call.
      * This domain provides various functionality related to drawing atop the inspected page.
      */
     export module Overlay {
+        /**
+         * Configuration data for the highlighting of Grid elements.
+         */
+        export interface GridHighlightConfig {
+            /**
+             * Whether the extension lines from grid cells to the rulers should be shown (default: false).
+             */
+            showGridExtensionLines?: boolean;
+            /**
+             * The grid container border highlight color (default: transparent).
+             */
+            gridBorderColor?: DOM.RGBA;
+            /**
+             * The cell border color (default: transparent).
+             */
+            cellBorderColor?: DOM.RGBA;
+            /**
+             * Whether the grid border is dashed (default: false).
+             */
+            gridBorderDash?: boolean;
+            /**
+             * Whether the cell border is dashed (default: false).
+             */
+            cellBorderDash?: boolean;
+            /**
+             * The row gap highlight fill color (default: transparent).
+             */
+            rowGapColor?: DOM.RGBA;
+            /**
+             * The row gap hatching fill color (default: transparent).
+             */
+            rowHatchColor?: DOM.RGBA;
+            /**
+             * The column gap highlight fill color (default: transparent).
+             */
+            columnGapColor?: DOM.RGBA;
+            /**
+             * The column gap hatching fill color (default: transparent).
+             */
+            columnHatchColor?: DOM.RGBA;
+        }
         /**
          * Configuration data for the highlighting of page elements.
          */
@@ -7909,6 +8050,32 @@ continueInterceptedRequest call.
              * The grid layout color (default: transparent).
              */
             cssGridColor?: DOM.RGBA;
+            /**
+             * The color format used to format color styles (default: hex).
+             */
+            colorFormat?: ColorFormat;
+            /**
+             * The grid layout highlight configuration (default: all transparent).
+             */
+            gridHighlightConfig?: GridHighlightConfig;
+        }
+        export type ColorFormat = "rgb"|"hsl"|"hex";
+        /**
+         * Configuration for dual screen hinge
+         */
+        export interface HingeConfig {
+            /**
+             * A rectangle represent hinge
+             */
+            rect: DOM.Rect;
+            /**
+             * The content box highlight fill color (default: a dark color).
+             */
+            contentColor?: DOM.RGBA;
+            /**
+             * The content box highlight outline color (default: transparent).
+             */
+            outlineColor?: DOM.RGBA;
         }
         export type InspectMode = "searchForNode"|"searchForUAShadowDOM"|"captureAreaScreenshot"|"showDistances"|"none";
         
@@ -7972,6 +8139,10 @@ user manually inspects an element.
              * Whether to include style info.
              */
             includeStyle?: boolean;
+            /**
+             * The color format to get config with (default: hex)
+             */
+            colorFormat?: ColorFormat;
         }
         export type getHighlightObjectForTestReturnValue = {
             /**
@@ -8195,6 +8366,17 @@ Backend then generates 'inspectNodeRequested' event upon element selection.
             show: boolean;
         }
         export type setShowViewportSizeOnResizeReturnValue = {
+        }
+        /**
+         * Add a dual screen device hinge
+         */
+        export type setShowHingeParameters = {
+            /**
+             * hinge data, null means hideHinge
+             */
+            hingeConfig?: HingeConfig;
+        }
+        export type setShowHingeReturnValue = {
         }
     }
     
@@ -8540,6 +8722,7 @@ Backend then generates 'inspectNodeRequested' event upon element selection.
             fixed?: number;
         }
         export type ClientNavigationReason = "formSubmissionGet"|"formSubmissionPost"|"httpHeaderRefresh"|"scriptInitiated"|"metaTagRefresh"|"pageBlockInterstitial"|"reload"|"anchorClick";
+        export type ClientNavigationDisposition = "currentTab"|"newTab"|"newWindow"|"download";
         export interface InstallabilityErrorArgument {
             /**
              * Argument name (e.g. name:'minimum-icon-size-in-pixels').
@@ -8650,6 +8833,10 @@ Navigation may still be cancelled after the event is issued.
              * The destination URL for the requested navigation.
              */
             url: string;
+            /**
+             * The disposition for the navigation.
+             */
+            disposition: ClientNavigationDisposition;
         }
         /**
          * Fired when frame schedules a potential navigation.
@@ -8707,6 +8894,10 @@ guaranteed to start.
              * URL of the resource being downloaded.
              */
             url: string;
+            /**
+             * Suggested file name of the resource (the actual name of the file saved on disk may differ).
+             */
+            suggestedFilename: string;
         }
         /**
          * Fired when download makes progress. Last call has |done| == true.
@@ -11900,25 +12091,51 @@ The default is true.
         export type PlayerId = string;
         export type Timestamp = number;
         /**
-         * Player Property type
+         * Have one type per entry in MediaLogRecord::Type
+Corresponds to kMessage
+         */
+        export interface PlayerMessage {
+            /**
+             * Keep in sync with MediaLogMessageLevel
+We are currently keeping the message level 'error' separate from the
+PlayerError type because right now they represent different things,
+this one being a DVLOG(ERROR) style log message that gets printed
+based on what log level is selected in the UI, and the other is a
+representation of a media::PipelineStatus object. Soon however we're
+going to be moving away from using PipelineStatus for errors and
+introducing a new error type which should hopefully let us integrate
+the error log level into the PlayerError type.
+             */
+            level: "error"|"warning"|"info"|"debug";
+            message: string;
+        }
+        /**
+         * Corresponds to kMediaPropertyChange
          */
         export interface PlayerProperty {
             name: string;
-            value?: string;
+            value: string;
         }
         /**
-         * Break out events into different types
+         * Corresponds to kMediaEventTriggered
          */
-        export type PlayerEventType = "errorEvent"|"triggeredEvent"|"messageEvent";
         export interface PlayerEvent {
-            type: PlayerEventType;
-            /**
-             * Events are timestamped relative to the start of the player creation
-not relative to the start of playback.
-             */
             timestamp: Timestamp;
-            name: string;
             value: string;
+        }
+        /**
+         * Corresponds to kMediaError
+         */
+        export interface PlayerError {
+            type: "pipeline_error"|"media_error";
+            /**
+             * When this switches to using media::Status instead of PipelineStatus
+we can remove "errorCode" and replace it with the fields from
+a Status instance. This also seems like a duplicate of the error
+level enum - there is a todo bug to have that level removed and
+use this instead. (crbug.com/1068454)
+             */
+            errorCode: string;
         }
         
         /**
@@ -11936,6 +12153,20 @@ congestion. If batched, events must ALWAYS be in chronological order.
         export type playerEventsAddedPayload = {
             playerId: PlayerId;
             events: PlayerEvent[];
+        }
+        /**
+         * Send a list of any messages that need to be delivered.
+         */
+        export type playerMessagesLoggedPayload = {
+            playerId: PlayerId;
+            messages: PlayerMessage[];
+        }
+        /**
+         * Send a list of any errors that need to be delivered.
+         */
+        export type playerErrorsRaisedPayload = {
+            playerId: PlayerId;
+            errors: PlayerError[];
         }
         /**
          * Called whenever a player is created, or when a new agent joins and recieves
@@ -12160,6 +12391,19 @@ variables as its properties.
          * Enum of possible script languages.
          */
         export type ScriptLanguage = "JavaScript"|"WebAssembly";
+        /**
+         * Debug symbols available for a wasm script.
+         */
+        export interface DebugSymbols {
+            /**
+             * Type of the debug symbols.
+             */
+            type: "None"|"SourceMap"|"EmbeddedDWARF"|"ExternalDWARF";
+            /**
+             * URL of the external symbol source.
+             */
+            externalURL?: string;
+        }
         
         /**
          * Fired when breakpoint is resolved to an actual script and location.
@@ -12353,6 +12597,10 @@ scripts upon enabling debugger.
              * The language of the script.
              */
             scriptLanguage?: Debugger.ScriptLanguage;
+            /**
+             * If the scriptLanguage is WebASsembly, the source of debug symbols for the module.
+             */
+            debugSymbols?: Debugger.DebugSymbols;
         }
         
         /**
@@ -12436,6 +12684,33 @@ execution. Overrides `setPauseOnException` state.
             timeout?: Runtime.TimeDelta;
         }
         export type evaluateOnCallFrameReturnValue = {
+            /**
+             * Object wrapper for the evaluation result.
+             */
+            result: Runtime.RemoteObject;
+            /**
+             * Exception details.
+             */
+            exceptionDetails?: Runtime.ExceptionDetails;
+        }
+        /**
+         * Execute a Wasm Evaluator module on a given call frame.
+         */
+        export type executeWasmEvaluatorParameters = {
+            /**
+             * WebAssembly call frame identifier to evaluate on.
+             */
+            callFrameId: CallFrameId;
+            /**
+             * Code of the evaluator module.
+             */
+            evaluator: binary;
+            /**
+             * Terminate execution after timing out (number of milliseconds).
+             */
+            timeout?: Runtime.TimeDelta;
+        }
+        export type executeWasmEvaluatorReturnValue = {
             /**
              * Object wrapper for the evaluation result.
              */
@@ -13466,7 +13741,7 @@ other objects in their object group.
             /**
              * Object subtype hint. Specified for `object` or `wasm` type values only.
              */
-            subtype?: "array"|"null"|"node"|"regexp"|"date"|"map"|"set"|"weakmap"|"weakset"|"iterator"|"generator"|"error"|"proxy"|"promise"|"typedarray"|"arraybuffer"|"dataview"|"i32"|"i64"|"f32"|"f64"|"v128";
+            subtype?: "array"|"null"|"node"|"regexp"|"date"|"map"|"set"|"weakmap"|"weakset"|"iterator"|"generator"|"error"|"proxy"|"promise"|"typedarray"|"arraybuffer"|"dataview"|"i32"|"i64"|"f32"|"f64"|"v128"|"anyref";
             /**
              * Object class (constructor) name. Specified for `object` type values only.
              */
@@ -14516,6 +14791,8 @@ unsubscribes current runtime agent from Runtime.bindingCalled notifications.
       "WebAudio.nodeParamDisconnected": WebAudio.nodeParamDisconnectedPayload;
       "Media.playerPropertiesChanged": Media.playerPropertiesChangedPayload;
       "Media.playerEventsAdded": Media.playerEventsAddedPayload;
+      "Media.playerMessagesLogged": Media.playerMessagesLoggedPayload;
+      "Media.playerErrorsRaised": Media.playerErrorsRaisedPayload;
       "Media.playersCreated": Media.playersCreatedPayload;
       "Console.messageAdded": Console.messageAddedPayload;
       "Debugger.breakpointResolved": Debugger.breakpointResolvedPayload;
@@ -14802,6 +15079,7 @@ unsubscribes current runtime agent from Runtime.bindingCalled notifications.
       "Overlay.setShowScrollBottleneckRects": Overlay.setShowScrollBottleneckRectsParameters;
       "Overlay.setShowHitTestBorders": Overlay.setShowHitTestBordersParameters;
       "Overlay.setShowViewportSizeOnResize": Overlay.setShowViewportSizeOnResizeParameters;
+      "Overlay.setShowHinge": Overlay.setShowHingeParameters;
       "Page.addScriptToEvaluateOnLoad": Page.addScriptToEvaluateOnLoadParameters;
       "Page.addScriptToEvaluateOnNewDocument": Page.addScriptToEvaluateOnNewDocumentParameters;
       "Page.bringToFront": Page.bringToFrontParameters;
@@ -14942,6 +15220,7 @@ unsubscribes current runtime agent from Runtime.bindingCalled notifications.
       "Debugger.disable": Debugger.disableParameters;
       "Debugger.enable": Debugger.enableParameters;
       "Debugger.evaluateOnCallFrame": Debugger.evaluateOnCallFrameParameters;
+      "Debugger.executeWasmEvaluator": Debugger.executeWasmEvaluatorParameters;
       "Debugger.getPossibleBreakpoints": Debugger.getPossibleBreakpointsParameters;
       "Debugger.getScriptSource": Debugger.getScriptSourceParameters;
       "Debugger.getWasmBytecode": Debugger.getWasmBytecodeParameters;
@@ -15281,6 +15560,7 @@ unsubscribes current runtime agent from Runtime.bindingCalled notifications.
       "Overlay.setShowScrollBottleneckRects": Overlay.setShowScrollBottleneckRectsReturnValue;
       "Overlay.setShowHitTestBorders": Overlay.setShowHitTestBordersReturnValue;
       "Overlay.setShowViewportSizeOnResize": Overlay.setShowViewportSizeOnResizeReturnValue;
+      "Overlay.setShowHinge": Overlay.setShowHingeReturnValue;
       "Page.addScriptToEvaluateOnLoad": Page.addScriptToEvaluateOnLoadReturnValue;
       "Page.addScriptToEvaluateOnNewDocument": Page.addScriptToEvaluateOnNewDocumentReturnValue;
       "Page.bringToFront": Page.bringToFrontReturnValue;
@@ -15421,6 +15701,7 @@ unsubscribes current runtime agent from Runtime.bindingCalled notifications.
       "Debugger.disable": Debugger.disableReturnValue;
       "Debugger.enable": Debugger.enableReturnValue;
       "Debugger.evaluateOnCallFrame": Debugger.evaluateOnCallFrameReturnValue;
+      "Debugger.executeWasmEvaluator": Debugger.executeWasmEvaluatorReturnValue;
       "Debugger.getPossibleBreakpoints": Debugger.getPossibleBreakpointsReturnValue;
       "Debugger.getScriptSource": Debugger.getScriptSourceReturnValue;
       "Debugger.getWasmBytecode": Debugger.getWasmBytecodeReturnValue;
