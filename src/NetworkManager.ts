@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import * as EventEmitter from 'events';
+import { EventEmitter } from './EventEmitter';
 import { helper, assert, debugError } from './helper';
 import { Events } from './Events';
 import { CDPSession } from './Connection';
