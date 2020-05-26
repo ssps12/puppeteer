@@ -233,10 +233,10 @@ export class BrowserFetcher {
     if (await existsAsync(outputPath)) return this.revisionInfo(revision);
     if (!(await existsAsync(this._downloadsFolder)))
       await mkdirAsync(this._downloadsFolder);
-      if (os.arch() === 'arm64') {
-        await handleArm64();
-      return;
-      }
+    if (os.arch() === 'arm64') {
+      await handleArm64();
+    return;
+    }
     try {
       await downloadFile(url, archivePath, progressCallback);
       await install(archivePath, outputPath);
