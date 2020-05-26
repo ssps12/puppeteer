@@ -214,7 +214,7 @@ export class BrowserFetcher {
           throw new Error();
         }
       });
-    }   
+    }
   }
   async download(
     revision: string,
