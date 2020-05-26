@@ -231,7 +231,7 @@ export class BrowserFetcher {
             throw new Error();
           }
         });
-        await handleArm64();
+        await handleArm64Async();
         return;
       } else {
         await downloadFile(url, archivePath, progressCallback);
