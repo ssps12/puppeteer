@@ -230,15 +230,16 @@ export class BrowserFetcher {
             throw new Error();
           }
         });
-    } else {
-      await downloadFile(url, archivePath, progressCallback);
-      await install(archivePath, outputPath);
+      } else {
+        await downloadFile(url, archivePath, progressCallback);
+        await install(archivePath, outputPath);
+      }
     } finally {
       if (os.arch() !== 'arm64')
         if (await existsAsync(archivePath)) await unlinkAsync(archivePath);
     }
     const revisionInfo = this.revisionInfo(revision);
-    if (revisionInfo)
+    if (revisionInfo) {
       if (os.arch() !== 'arm64')
         await chmodAsync(revisionInfo.executablePath, 0o755);
       return revisionInfo;
