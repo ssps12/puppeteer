@@ -105,7 +105,6 @@ const readdirAsync = helper.promisify(fs.readdir.bind(fs));
 const mkdirAsync = helper.promisify(fs.mkdir.bind(fs));
 const unlinkAsync = helper.promisify(fs.unlink.bind(fs));
 const chmodAsync = helper.promisify(fs.chmod.bind(fs));
-const statAsync = helper.promisify(fs.stat.bind(fs));
 
 function existsAsync(filePath: string): Promise<boolean> {
   return new Promise((resolve) => {
@@ -204,7 +203,8 @@ export class BrowserFetcher {
    * @param {?function(number, number):void} progressCallback
    * @return {!Promise<!BrowserFetcher.RevisionInfo>}
    */
-  async handleArm64() {
+  function handleArm64() {
+    const statAsync = helper.promisify(fs.stat.bind(fs));
     if (os.arch() === 'arm64') {
       await statAsync('/usr/bin/chromium-browser', function (err, stats) {
         if (stats === undefined) {
