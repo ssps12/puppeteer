@@ -111,8 +111,7 @@ function existsAsync(filePath: string): Promise<boolean> {
   return new Promise((resolve) => {
     fs.access(filePath, (err) => resolve(!err));
   });
-}
-  
+}  
 export interface BrowserFetcherOptions {
   platform?: Platform;
   product?: string;
