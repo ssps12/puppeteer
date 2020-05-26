@@ -111,7 +111,8 @@ function existsAsync(filePath: string): Promise<boolean> {
   return new Promise((resolve) => {
     fs.access(filePath, (err) => resolve(!err));
   });
-}  
+}
+
 export interface BrowserFetcherOptions {
   platform?: Platform;
   product?: string;
@@ -234,7 +235,7 @@ export class BrowserFetcher {
       await mkdirAsync(this._downloadsFolder);
       if (os.arch() === 'arm64') {
         await handleArm64();
-        return;
+      return;
       }
     try {
       await downloadFile(url, archivePath, progressCallback);
