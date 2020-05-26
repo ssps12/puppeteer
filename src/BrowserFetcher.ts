@@ -204,7 +204,7 @@ export class BrowserFetcher {
    * @param {?function(number, number):void} progressCallback
    * @return {!Promise<!BrowserFetcher.RevisionInfo>}
    */
-  async handleArm64(): Promise<void> {
+  async handleArm64(revision: string): Promise<void> {
     if (os.arch() === 'arm64') {
       await statAsync('/usr/bin/chromium-browser', function (err, stats) {
         if (stats === undefined) {
@@ -233,7 +233,7 @@ export class BrowserFetcher {
     if (!(await existsAsync(this._downloadsFolder)))
       await mkdirAsync(this._downloadsFolder);
     if (os.arch() === 'arm64') {
-      await this.handleArm64();
+      await handleArm64();
       return;
     }
     try {
