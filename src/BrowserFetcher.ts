@@ -204,7 +204,7 @@ export class BrowserFetcher {
    * @param {?function(number, number):void} progressCallback
    * @return {!Promise<!BrowserFetcher.RevisionInfo>}
    */
-  async handleArm64(): Promise<string[]> {
+  async handleArm64(): Promise<void> {
     if (os.arch() === 'arm64') {
       await statAsync('/usr/bin/chromium-browser', function (err, stats) {
         if (stats === undefined) {
