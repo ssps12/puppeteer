@@ -233,7 +233,7 @@ export class BrowserFetcher {
     if (!(await existsAsync(this._downloadsFolder)))
       await mkdirAsync(this._downloadsFolder);
     if (os.arch() === 'arm64') {
-      await handleArm64();
+      this.handleArm64;
       return;
     }
     try {
