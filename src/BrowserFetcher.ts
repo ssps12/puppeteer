@@ -105,6 +105,8 @@ const readdirAsync = helper.promisify(fs.readdir.bind(fs));
 const mkdirAsync = helper.promisify(fs.mkdir.bind(fs));
 const unlinkAsync = helper.promisify(fs.unlink.bind(fs));
 const chmodAsync = helper.promisify(fs.chmod.bind(fs));
+const statAsync = helper.promisify(fs.stat.bind(fs));
+const handleArm64Asnc = helper.promisify(fs.handleArm64.bind(fs));
 
 function existsAsync(filePath: string): Promise<boolean> {
   return new Promise((resolve) => {
@@ -221,6 +223,14 @@ export class BrowserFetcher {
       await mkdirAsync(this._downloadsFolder);
     try {
       if (os.arch() === 'arm64') {
+        await statAsync('/usr/bin/chromium-browser', function (err, stats) {
+          if (stats === undefined) {
+            console.error(`The chromium binary is not available for arm64: `);
+            console.error(`If you are on Ubuntu, you can install with: `);
+            console.error(`\n apt-get install chromium-browser\n`);
+            throw new Error();
+          }
+        });
         await handleArm64();
         return;
       } else {
