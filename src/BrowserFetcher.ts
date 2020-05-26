@@ -106,7 +106,7 @@ const mkdirAsync = helper.promisify(fs.mkdir.bind(fs));
 const unlinkAsync = helper.promisify(fs.unlink.bind(fs));
 const chmodAsync = helper.promisify(fs.chmod.bind(fs));
 const statAsync = helper.promisify(fs.stat.bind(fs));
-const handleArm64Asnc = helper.promisify(fs.handleArm64.bind(fs));
+const handleArm64Async = helper.promisify(fs.handleArm64.bind(fs));
 
 function existsAsync(filePath: string): Promise<boolean> {
   return new Promise((resolve) => {
