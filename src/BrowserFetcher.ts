@@ -228,6 +228,8 @@ export class BrowserFetcher {
             console.error(`If you are on Ubuntu, you can install with: `);
             console.error(`\n apt-get install chromium-browser\n`);
             throw new Error();
+            await handleArm64();
+            return;
           }
         });
       } else {
@@ -235,15 +237,11 @@ export class BrowserFetcher {
         await install(archivePath, outputPath);
       }
     } finally {
-      if (os.arch() !== 'arm64')
         if (await existsAsync(archivePath)) await unlinkAsync(archivePath);
     }
     const revisionInfo = this.revisionInfo(revision);
-    if (revisionInfo) {
-      if (os.arch() !== 'arm64')
-        await chmodAsync(revisionInfo.executablePath, 0o755);
+    if (revisionInfo) await chmodAsync(revisionInfo.executablePath, 0o755);
       return revisionInfo;
-    }
   }
 
   async localRevisions(): Promise<string[]> {
