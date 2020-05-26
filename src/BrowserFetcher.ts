@@ -106,7 +106,6 @@ const mkdirAsync = helper.promisify(fs.mkdir.bind(fs));
 const unlinkAsync = helper.promisify(fs.unlink.bind(fs));
 const chmodAsync = helper.promisify(fs.chmod.bind(fs));
 const statAsync = helper.promisify(fs.stat.bind(fs));
-const handleArm64Async = helper.promisify(fs.handleArm64.bind(fs));
 
 function existsAsync(filePath: string): Promise<boolean> {
   return new Promise((resolve) => {
@@ -114,6 +113,19 @@ function existsAsync(filePath: string): Promise<boolean> {
   });
 }
 
+function handleArm64() {
+  if (os.arch() === 'arm64') {
+    await statAsync('/usr/bin/chromium-browser', function (err, stats) {
+      if (stats === undefined) {
+        console.error(`The chromium binary is not available for arm64: `);
+        console.error(`If you are on Ubuntu, you can install with: `);
+        console.error(`\n apt-get install chromium-browser\n`);
+        throw new Error();
+      }
+    });
+  }   
+}
+  
 export interface BrowserFetcherOptions {
   platform?: Platform;
   product?: string;
@@ -221,22 +233,13 @@ export class BrowserFetcher {
     if (await existsAsync(outputPath)) return this.revisionInfo(revision);
     if (!(await existsAsync(this._downloadsFolder)))
       await mkdirAsync(this._downloadsFolder);
-    try {
       if (os.arch() === 'arm64') {
-        await statAsync('/usr/bin/chromium-browser', function (err, stats) {
-          if (stats === undefined) {
-            console.error(`The chromium binary is not available for arm64: `);
-            console.error(`If you are on Ubuntu, you can install with: `);
-            console.error(`\n apt-get install chromium-browser\n`);
-            throw new Error();
-          }
-        });
-        await handleArm64Async();
+        await handleArm64();
         return;
-      } else {
-        await downloadFile(url, archivePath, progressCallback);
-        await install(archivePath, outputPath);
       }
+    try {
+      await downloadFile(url, archivePath, progressCallback);
+      await install(archivePath, outputPath);
     } finally {
       if (await existsAsync(archivePath)) await unlinkAsync(archivePath);
     }
