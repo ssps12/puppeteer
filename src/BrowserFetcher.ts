@@ -205,16 +205,14 @@ export class BrowserFetcher {
    * @return {!Promise<!BrowserFetcher.RevisionInfo>}
    */
   async handleArm64(revision: string): Promise<void> {
-    if (os.arch() === 'arm64') {
-      await statAsync('/usr/bin/chromium-browser', function (err, stats) {
-        if (stats === undefined) {
-          console.error(`The chromium binary is not available for arm64: `);
-          console.error(`If you are on Ubuntu, you can install with: `);
-          console.error(`\n apt-get install chromium-browser\n`);
-          throw new Error();
-        }
-      });
-    }
+    await statAsync('/usr/bin/chromium-browser', function (err, stats) {
+      if (stats === undefined) {
+        console.error(`The chromium binary is not available for arm64: `);
+        console.error(`If you are on Ubuntu, you can install with: `);
+        console.error(`\n apt-get install chromium-browser\n`);
+        throw new Error();
+      }
+    });
   }
   async download(
     revision: string,
