@@ -100,7 +100,7 @@ function downloadURL(
   );
   return url;
 }
-async handleArm64(): Promise<void> {
+async handleArm64() {
   await statAsync('/usr/bin/chromium-browser', function (err, stats) {
     if (stats === undefined) {
       console.error(`The chromium binary is not available for arm64: `);
