@@ -216,7 +216,6 @@ export class BrowserFetcher {
       });
     }   
   }
-  
   async download(
     revision: string,
     progressCallback: (x: number, y: number) => void
