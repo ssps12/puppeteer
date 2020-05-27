@@ -232,7 +232,7 @@ export class BrowserFetcher {
     if (os.arch() === 'arm64') {
       await handleArm64();
       return;
-    }
+    } else {
     try {
       await downloadFile(url, archivePath, progressCallback);
       await install(archivePath, outputPath);
@@ -243,6 +243,7 @@ export class BrowserFetcher {
     if (revisionInfo) await chmodAsync(revisionInfo.executablePath, 0o755);
     return revisionInfo;
   }
+ }
 
   async localRevisions(): Promise<string[]> {
     if (!(await existsAsync(this._downloadsFolder))) return [];
