@@ -243,7 +243,7 @@ export class BrowserFetcher {
       if (revisionInfo) await chmodAsync(revisionInfo.executablePath, 0o755);
       return revisionInfo;
     }
-   }
+  }
 
   async localRevisions(): Promise<string[]> {
     if (!(await existsAsync(this._downloadsFolder))) return [];
