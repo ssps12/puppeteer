@@ -233,17 +233,17 @@ export class BrowserFetcher {
       await handleArm64();
       return;
     } else {
-    try {
-      await downloadFile(url, archivePath, progressCallback);
-      await install(archivePath, outputPath);
-    } finally {
-      if (await existsAsync(archivePath)) await unlinkAsync(archivePath);
+      try {
+        await downloadFile(url, archivePath, progressCallback);
+        await install(archivePath, outputPath);
+      } finally {
+        if (await existsAsync(archivePath)) await unlinkAsync(archivePath);
+      }
+      const revisionInfo = this.revisionInfo(revision);
+      if (revisionInfo) await chmodAsync(revisionInfo.executablePath, 0o755);
+      return revisionInfo;
     }
-    const revisionInfo = this.revisionInfo(revision);
-    if (revisionInfo) await chmodAsync(revisionInfo.executablePath, 0o755);
-    return revisionInfo;
-  }
- }
+   }
 
   async localRevisions(): Promise<string[]> {
     if (!(await existsAsync(this._downloadsFolder))) return [];
